@@ -15,8 +15,8 @@ def main():
     
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_filename = f"extractions/CSV/BySubCats/{current_time}.csv"
-    scraper = ArxivScraper(csv_file=csv_filename, csv_mode="per_article", rate_limit=3, retry_wait=30, debug=True)
-    articles = scraper.scrape(chronological=True, categories=test_cats, max_articles=1000, batch_size=100)
+    scraper = ArxivScraper(rate_limit=3, retry_wait=30, debug=True)
+    articles = scraper.scrape(chronological=True, categories=test_cats, max_articles=5, batch_size=5)
     print(f"Total articles scrapés par catégories/sous-catégories : {len(articles)}")
     
 if __name__ == "__main__":

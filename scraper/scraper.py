@@ -7,6 +7,11 @@ from tqdm import tqdm
 class ArxivScraper:
     def __init__(self, base_url="http://export.arxiv.org/api/query?", rate_limit=3, csv_file=None, csv_mode="at_end",
                  verbose=True, debug=False, max_retries=3, retry_wait=10):
+        """
+        :param csv_file: Chemin vers le fichier CSV de sortie.
+                         Si None, aucun fichier CSV ne sera créé.
+        :param csv_mode: Mode d'écriture du CSV ("at_end", "per_article" ou "per_subquery").
+        """
         self.base_url = base_url
         self.rate_limit = rate_limit
         self.csv_file = csv_file
@@ -52,7 +57,7 @@ class ArxivScraper:
             "updated": entry.get("updated"),
         }
 
-    def scrape_query(self, search_query="", max_articles=10000, batch_size=100, sortBy=None, sortOrder=None):
+    def scrape_query(self, search_query="", max_articles=1000, batch_size=10, sortBy=None, sortOrder=None):
         total = 0
         start = 0
         query_start_time = time.time()  # Début de la requête globale
@@ -117,7 +122,8 @@ class ArxivScraper:
         all_articles = []
         writer = None
         csvfile = None
-        if self.csv_file:
+        # Si un chemin CSV est fourni, on crée le fichier
+        if self.csv_file is not None:
             csvfile = open(self.csv_file, "w", newline="", encoding="utf-8")
             writer = csv.DictWriter(csvfile, fieldnames=self.fieldnames)
             writer.writeheader()
