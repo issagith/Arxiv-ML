@@ -9,7 +9,7 @@ class ArxivScraper:
         self.rate_limit = rate_limit
         self.csv_file = csv_file
         self.csv_mode = csv_mode
-        self.fieldnames = ["id", "title", "summary", "authors", "published", "updated", "link"]
+        self.fieldnames = ["id", "title", "summary", "category", "authors", "published", "updated"]
 
     def build_query(self, search_query="", start=0, max_results=100, sortBy=None, sortOrder=None):
         params = []
@@ -34,15 +34,18 @@ class ArxivScraper:
             "id": entry.get("id"),
             "title": entry.get("title"),
             "summary": entry.get("summary"),
+            "category": entry.get("arxiv_primary_category", {}).get("term"),
             "authors": ", ".join(author.name for author in entry.get("authors", [])),
             "published": entry.get("published"),
             "updated": entry.get("updated"),
-            "link": next((link.href for link in entry.get("links", []) if link.get("rel") == "alternate"), None)
         }
 
-    def scrape_query(self, search_query="", max_articles=10000, batch_size=100, sortBy=None, sortOrder=None):
+    def scrape_query(self, search_query="", max_articles=10000, batch_size=100,
+                     sortBy=None, sortOrder=None, max_retries=3, retry_wait=10):
         total = 0
-        for start in range(0, max_articles, batch_size):
+        start = 0
+        # Tant qu'on n'a pas atteint le nombre max d'articles demandé
+        while start < max_articles:
             query_url = self.build_query(
                 search_query=search_query, 
                 start=start, 
@@ -51,28 +54,37 @@ class ArxivScraper:
                 sortOrder=sortOrder
             )
             data = self.fetch_data(query_url)
+            
+            # Si aucune entrée n'est retournée, vérifier le total d'articles disponibles
             if not data.entries:
-                print(f"No new entries found at start={start}.")
-                break
+                total_results = int(data.feed.get("opensearch_totalresults", 0))
+                if total_results > total:
+                    attempt = 1
+                    while attempt <= max_retries:
+                        print(f"No new entries found at start={start}. Retry {attempt}/{max_retries} in {retry_wait} seconds...")
+                        time.sleep(retry_wait)
+                        data = self.fetch_data(query_url)
+                        if data.entries:
+                            break
+                        attempt += 1
+                    if not data.entries:
+                        print(f"Max retries reached at start={start} with no new entries. Moving on.")
+                        break
+                else:
+                    print(f"No new entries found at start={start}.")
+                    break
+
             for entry in data.entries:
                 article = self.process_entry(entry)
                 total += 1
                 yield article
             print(f"{total} articles retrieved for query '{search_query}'")
+            start += batch_size
             time.sleep(self.rate_limit)
 
-    def scrape(self, *, categories=None, keyword=None, chronological=False, max_articles=10000, batch_size=100, sortOrder="descending"):
-        
-        mode_count = 0
-        if categories is not None:
-            mode_count += 1
-        if keyword is not None:
-            mode_count += 1
-        if chronological:
-            mode_count += 1
-        if mode_count != 1:
-            raise ValueError("Please specify exactly one type of query: either 'categories', 'keyword', or 'chronological'.")
-
+    def scrape(self, *, categories=None, keyword=None, chronological=False, max_articles=10000, batch_size=100,
+               sortOrder="descending", max_retries=3, retry_wait=10):
+        # Construction des requêtes par catégories/sous-catégories (comportement initial)
         if categories is not None:
             queries = []
             if isinstance(categories, dict):
@@ -84,16 +96,14 @@ class ArxivScraper:
                         queries.append(f"cat:{main_cat}")
             else:
                 queries = [f"cat:{cat}" for cat in categories]
-            sortBy = None
-            sortOrder_final = None
         elif keyword is not None:
             queries = [f"all:{keyword}"]
-            sortBy = None
-            sortOrder_final = None
-        elif chronological:
+        else:
             queries = ["all:*"]
-            sortBy = "submittedDate"
-            sortOrder_final = sortOrder
+
+        # Si l'option chronologique est activée, on définit les paramètres de tri
+        sortBy = "submittedDate" if chronological else None
+        sortOrder_final = sortOrder if chronological else None
 
         all_articles = []
         writer = None
@@ -111,7 +121,9 @@ class ArxivScraper:
                 max_articles=max_articles,
                 batch_size=batch_size,
                 sortBy=sortBy,
-                sortOrder=sortOrder_final
+                sortOrder=sortOrder_final,
+                max_retries=max_retries,
+                retry_wait=retry_wait
             ):
                 articles.append(article)
                 if writer and self.csv_mode == "per_article":
