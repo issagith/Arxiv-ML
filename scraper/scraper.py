@@ -7,17 +7,12 @@ from tqdm import tqdm
 class ArxivScraper:
     def __init__(self, base_url="http://export.arxiv.org/api/query?", rate_limit=3, csv_file=None, csv_mode="at_end",
                  verbose=True, debug=False, max_retries=3, retry_wait=10):
-        """
-        :param csv_file: Chemin vers le fichier CSV de sortie.
-                         Si None, aucun fichier CSV ne sera créé.
-        :param csv_mode: Mode d'écriture du CSV ("at_end", "per_article" ou "per_subquery").
-        """
         self.base_url = base_url
         self.rate_limit = rate_limit
         self.csv_file = csv_file
         self.csv_mode = csv_mode
-        self.verbose = verbose    # Active ou désactive les barres de progression et logs essentiels
-        self.debug = debug        # Active ou désactive les logs détaillés
+        self.verbose = verbose    
+        self.debug = debug        
         self.max_retries = max_retries
         self.retry_wait = retry_wait
         self.fieldnames = ["id", "title", "summary", "category", "authors", "published", "updated"]
@@ -161,5 +156,6 @@ class ArxivScraper:
             self.log(f"Articles saved to {self.csv_file}.")
 
         global_end_time = time.time()
-        self.log(f"Scraping completed. {len(all_articles)} articles retrieved in {global_end_time - global_start_time:.2f} seconds.")
+        duration_hours = (global_end_time - global_start_time) / 3600
+        self.log(f"Scraping completed. {len(all_articles)} articles retrieved in {duration_hours:.2f} hours.")
         return all_articles
