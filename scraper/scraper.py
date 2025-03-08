@@ -119,7 +119,7 @@ class ArxivScraper:
         csvfile = None
         # Si un chemin CSV est fourni, on crée le fichier
         if self.csv_file is not None:
-            csvfile = open(self.csv_file, "w", newline="", encoding="utf-8")
+            csvfile = open(self.csv_file, "a", newline="", encoding="utf-8")
             writer = csv.DictWriter(csvfile, fieldnames=self.fieldnames)
             writer.writeheader()
 
