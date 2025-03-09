@@ -94,7 +94,7 @@ def plot_loss_curve(iteration_losses, window_size=1000):
     plt.grid(True)
     
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    filename = f"trained_models/loss_curve_{timestamp}.png"
+    filename = f"training_plots/loss_curve_{timestamp}.png"
     plt.savefig(filename)
     plt.show()
     logging.info(f"The loss curve has been saved as '{filename}'.")
