@@ -1,0 +1,19 @@
+starting training with the following hyperparams :
+vocab_size : 13384
+embedding_dim : 128
+hidden_dim : 512
+num_classes : 138
+num_hidden_layers : 1
+
+
+loss: 4.962190  [  128/108954]
+loss: 1.824641  [12928/108954]
+loss: 1.706105  [25728/108954]
+loss: 1.384606  [38528/108954]
+loss: 1.459153  [51328/108954]
+loss: 1.468548  [64128/108954]
+loss: 1.296053  [76928/108954]
+loss: 1.840328  [89728/108954]
+loss: 1.562803  [102528/108954]
+Epoch 1/1, Training Loss (epoch average): 1.6498, Test Loss: 1.3649, Test Accuracy: 62.51%
+The loss curve has been saved as 'trained_models/loss_curve_20250309-182952.png'.
