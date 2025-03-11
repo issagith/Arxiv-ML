@@ -142,6 +142,7 @@ def main():
 
     vocab_size = len(dataset.wtoi)
     embedding_dim = 64
+    embedding_dim = 64
     hidden_dim = 512
     num_classes = len(dataset.ctoi)
     num_hidden_layers = 1
