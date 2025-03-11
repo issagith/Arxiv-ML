@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler("training_log.txt", mode="w")],
+    handlers=[logging.StreamHandler(), logging.FileHandler("training_logs/training_log.txt", mode="w")],
     encoding='utf-8'
 )
 
@@ -131,11 +131,17 @@ def main():
     from article_dataset import ArticleDataset
     from models.mlp_classifier import MLPClassifier
 
-    csv_file = "data/sci_papers.csv"  
-    dataset = ArticleDataset(csv_file, min_freq=2)
+    csv_file = "data/articles.csv"  
+    dataset = ArticleDataset(csv_file)
+
+    filters = {
+        "min_papers" : 5000, 
+        "min_freq": 5,
+    }
+    dataset.apply_filters(filters)
 
     vocab_size = len(dataset.wtoi)
-    embedding_dim = 128
+    embedding_dim = 64
     hidden_dim = 512
     num_classes = len(dataset.ctoi)
     num_hidden_layers = 1
@@ -154,14 +160,15 @@ def main():
     logging.info('\n')
     model = MLPClassifier(vocab_size, embedding_dim, hidden_dim, num_classes, num_hidden_layers)
 
-    train(model, dataset, batch_size=128, num_epochs=1, learning_rate=0.001, train_ratio=0.8, plot_window_size=100)
+    train(model, dataset, batch_size=64, num_epochs=1, learning_rate=0.001, train_ratio=0.8, plot_window_size=1000)
     
     # Saving the model and hyperparameters
     checkpoint = {
         'model_state_dict': model.state_dict(),
         'hyperparameters': hyperparams
     }
-    torch.save(checkpoint, "trained_models/test.pth")
+    #torch.save(checkpoint, "trained_models/small_dataset_model.pth")"
+    
 
 if __name__ == "__main__":
     main()

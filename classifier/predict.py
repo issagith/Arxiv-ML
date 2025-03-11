@@ -42,7 +42,7 @@ def main():
     # Load the dataset to retrieve the wtoi and ctoi mappings from the dataset
     dataset = ArticleDataset("data/sci_papers.csv")
     
-    text = "Machine learning is hard"
+    text = "Importance of words in english"
     prediction_idx = predict(text, model, dataset.wtoi, device)
     
     itoc = {index: label for label, index in dataset.ctoi.items()}
