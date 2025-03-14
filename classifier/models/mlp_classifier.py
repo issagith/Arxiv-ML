@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -38,7 +37,7 @@ class MLPClassifier(nn.Module):
         mask = (padded_sequences != 0).unsqueeze(-1).float()  # [batch_size, seq_len, 1]
         emb = emb * mask
         
-        # Mean pooling: sum over the temporal dimension divided by the number of real tokens
+        # Mean pooling: sum over the temporal (i.e word sequence) dimension divided by the number of real tokens
         sum_emb = emb.sum(dim=1)            # [batch_size, embedding_dim]
         lengths = mask.sum(dim=1)           # [batch_size, 1]
         avg_emb = sum_emb / lengths.clamp(min=1)
@@ -53,3 +52,41 @@ class MLPClassifier(nn.Module):
         else:
             logits = self.output_layer(avg_emb)
         return logits
+    
+    def __len__(self):
+        return sum(p.numel() for p in self.parameters())
+
+if __name__ == "__main__":
+    import sys
+    sys.path.append("..")
+    from article_dataset import ArticleDataset
+    from models.mlp_classifier import MLPClassifier
+
+    csv_file = "../data/sci_papers.csv"  
+    dataset = ArticleDataset(csv_file)
+
+    filters = {
+        "min_papers" : 5000, 
+        "min_freq": 2,
+    }
+    dataset.apply_filters(filters)
+    
+    vocab_size = len(dataset.wtoi)
+    embedding_dim = 64
+    hidden_dim = 512
+    num_classes = len(dataset.ctoi)
+    num_hidden_layers = 1
+
+    hyperparams = {
+        'vocab_size': vocab_size,
+        'embedding_dim': embedding_dim,
+        'hidden_dim': hidden_dim,
+        'num_classes': num_classes,
+        'num_hidden_layers': num_hidden_layers
+    }
+    model = MLPClassifier(vocab_size, embedding_dim, hidden_dim, num_classes, num_hidden_layers)
+    
+    print(len(model))
+    for p in model.parameters():
+        print(p.shape)
+   
