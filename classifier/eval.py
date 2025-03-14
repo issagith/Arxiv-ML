@@ -127,10 +127,17 @@ def plot_roc_curve(model, dataset, device, batch_size=32):
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    checkpoint_path = "trained_models/small_dataset_model.pth"
+    checkpoint_path = "trained_models/categories.pth"
     
     model, hyperparams = load_checkpoint(checkpoint_path, device)
-    dataset = ArticleDataset("data/sci_papers.csv", min_freq=2)
+    dataset = ArticleDataset("data/articles.csv")
+    filters = {
+        "min_papers" : 5000, 
+        "min_freq": 2,
+    }
+    dataset.apply_filters(filters)
+    
+
     
     accuracy, report, conf_matrix = evaluate_model(model, dataset, device, batch_size=32)
     with open("eval_results/results.txt", "w", encoding="utf-8") as f:

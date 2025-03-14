@@ -136,12 +136,12 @@ def main():
 
     filters = {
         "min_papers" : 5000, 
-        "min_freq": 5,
+        "min_freq": 2,
     }
     dataset.apply_filters(filters)
 
+    
     vocab_size = len(dataset.wtoi)
-    embedding_dim = 64
     embedding_dim = 64
     hidden_dim = 512
     num_classes = len(dataset.ctoi)
@@ -161,14 +161,14 @@ def main():
     logging.info('\n')
     model = MLPClassifier(vocab_size, embedding_dim, hidden_dim, num_classes, num_hidden_layers)
 
-    train(model, dataset, batch_size=64, num_epochs=1, learning_rate=0.001, train_ratio=0.8, plot_window_size=1000)
+    train(model, dataset, batch_size=64, num_epochs=10, learning_rate=0.001, train_ratio=0.8, plot_window_size=1000)
     
     # Saving the model and hyperparameters
     checkpoint = {
         'model_state_dict': model.state_dict(),
         'hyperparameters': hyperparams
     }
-    #torch.save(checkpoint, "trained_models/small_dataset_model.pth")"
+    torch.save(checkpoint, "trained_models/categories.pth")
     
 
 if __name__ == "__main__":
