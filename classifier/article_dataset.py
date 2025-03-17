@@ -43,9 +43,11 @@ class ArticleDataset(Dataset):
         if level == "category":
             self.categories = list(self.data["main_category"].unique())
             self.ctoi = {cat: i for i, cat in enumerate(self.categories)}
+            self.itoc = {i: cat for i, cat in enumerate(self.categories)}
         elif level == "sub_category":
             self.categories = list(self.data["sub_category"].unique())
             self.ctoi = {cat: i for i, cat in enumerate(self.categories)}
+            self.itoc = {i: cat for i, cat in enumerate(self.categories)}
         else:
             raise ValueError("classification_level must be 'category' or 'sub_category'")
     
