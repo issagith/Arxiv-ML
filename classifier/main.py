@@ -18,6 +18,7 @@ HIDDEN_DIM = 256
 NUM_HIDDEN_LAYERS = 1
 IS_CUSTOM_EMB = False
 FREEZE_EMBEDDINGS = False
+DROPOUT = 0.2
 
 # -----------------------------
 # Dataset initialization
@@ -42,6 +43,7 @@ hyperparams = {
     'hidden_dim': HIDDEN_DIM,
     'num_classes': NUM_CLASSES,
     'num_hidden_layers': NUM_HIDDEN_LAYERS,
+    'dropout': DROPOUT,
     'is_custom_emb': IS_CUSTOM_EMB,
     'freeze_embeddings': FREEZE_EMBEDDINGS
 }
@@ -78,11 +80,12 @@ if not IS_CUSTOM_EMB:
         HIDDEN_DIM,
         NUM_CLASSES,
         NUM_HIDDEN_LAYERS,
+        dropout=DROPOUT,
         pretrained_embeddings=embedding_weights,
         freeze_embeddings=FREEZE_EMBEDDINGS
     ).to(device)
 else:
-    model = MLPClassifier(VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, NUM_CLASSES, NUM_HIDDEN_LAYERS).to(device)
+    model = MLPClassifier(VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, NUM_CLASSES, NUM_HIDDEN_LAYERS, DROPOUT).to(device)
 
 # -----------------------------
 # Training the model
