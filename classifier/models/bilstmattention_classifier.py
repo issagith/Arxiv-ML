@@ -1,3 +1,4 @@
+# models/bilstmattention_classifier.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,20 +9,20 @@ class BiLSTMAttentionClassifier(nn.Module):
                  dropout=0.2, pretrained_embeddings=None, freeze_embeddings=False):
         """
         Args:
-            vocab_size (int): Taille du vocabulaire.
-            embedding_dim (int): Dimension des embeddings.
-            hidden_dim (int): Dimension des états cachés du LSTM.
-            num_classes (int): Nombre de classes de sortie.
-            num_layers (int): Nombre de couches LSTM.
-            dropout (float): Probabilité de dropout.
-            pretrained_embeddings (Tensor, optionnel): Matrice d'embeddings pré-entraînés.
-            freeze_embeddings (bool): Si True, les embeddings ne seront pas mis à jour pendant l'entraînement.
+            vocab_size (int): Vocabulary size.
+            embedding_dim (int): Embedding dimension.
+            hidden_dim (int): LSTM hidden state dimension.
+            num_classes (int): Number of output classes.
+            num_layers (int): Number of LSTM layers.
+            dropout (float): Dropout probability.
+            pretrained_embeddings (Tensor, optional): Pretrained embedding matrix.
+            freeze_embeddings (bool): If True, embeddings are not updated during training.
         """
         super(BiLSTMAttentionClassifier, self).__init__()
         
-        # Couche d'embedding avec gestion du padding (index 0)
+        # Embedding layer with padding handling (index 0)
         if pretrained_embeddings is not None:
-            self.embedding = nn.Embedding.from_pretrained(pretrained_embeddings, 
+            self.embedding = nn.Embedding.from_pretrained(pretrained_embeddings,
                                                           freeze=freeze_embeddings,
                                                           padding_idx=0)
         else:
@@ -29,7 +30,7 @@ class BiLSTMAttentionClassifier(nn.Module):
         
         self.dropout = nn.Dropout(dropout)
         
-        # LSTM bidirectionnel
+        # Bidirectional LSTM
         self.lstm = nn.LSTM(input_size=embedding_dim,
                             hidden_size=hidden_dim,
                             num_layers=num_layers,
@@ -37,54 +38,37 @@ class BiLSTMAttentionClassifier(nn.Module):
                             bidirectional=True,
                             dropout=dropout if num_layers > 1 else 0)
         
-        # Couche de sortie : La dimension finale est 2 * hidden_dim
+        # Output layer: final representation size is 2 * hidden_dim
         self.fc = nn.Linear(2 * hidden_dim, num_classes)
         
     def forward(self, padded_sequences):
         """
+        Forward pass with attention mechanism.
         Args:
-            padded_sequences: Tensor de forme [batch_size, seq_len]
+            padded_sequences (Tensor): [batch_size, seq_len]
         Returns:
-            logits: Tensor de forme [batch_size, num_classes]
+            logits (Tensor): [batch_size, num_classes]
         """
-        # Passage par l'embedding: [batch_size, seq_len] -> [batch_size, seq_len, embedding_dim]
+        # Pass through embedding layer
         emb = self.embedding(padded_sequences)
+        lstm_out, (h_n, _) = self.lstm(emb)
         
-        # Passage par le LSTM bidirectionnel
-        # lstm_out : [batch_size, seq_len, 2*hidden_dim]
-        # (h_n, c_n) sont respectivement les derniers états cachés et les états de cellule
-        lstm_out, (h_n, c_n) = self.lstm(emb)
+        # For bidirectional LSTM, get last layer states for both directions
+        forward_hidden = h_n[-2]
+        backward_hidden = h_n[-1]
+        final_hidden = torch.cat((forward_hidden, backward_hidden), dim=1)
         
-        # Pour un LSTM bidirectionnel, h_n a la forme [num_layers * 2, batch_size, hidden_dim].
-        # Les deux dernières lignes correspondent aux états de la dernière couche :
-        # - h_n[-2] pour la direction forward
-        # - h_n[-1] pour la direction backward
-        forward_hidden = h_n[-2]  # [batch_size, hidden_dim]
-        backward_hidden = h_n[-1]  # [batch_size, hidden_dim]
-        final_hidden = torch.cat((forward_hidden, backward_hidden), dim=1)  # [batch_size, 2*hidden_dim]
+        # Use the final hidden state as query for attention
+        Q = final_hidden.unsqueeze(1)  # [batch_size, 1, 2*hidden_dim]
+        K = lstm_out                   # [batch_size, seq_len, 2*hidden_dim]
+        V = lstm_out                   # [batch_size, seq_len, 2*hidden_dim]
         
-        # Utilisation du dernier état caché comme requête (Query)
-        # On reforme Q pour qu'il soit de forme [batch_size, 1, 2*hidden_dim]
-        Q = final_hidden.unsqueeze(1)
-        # Les sorties du LSTM servent de clés (K) et valeurs (V)
-        K = lstm_out  # [batch_size, seq_len, 2*hidden_dim]
-        V = lstm_out  # [batch_size, seq_len, 2*hidden_dim]
-        
-        d_k = K.size(-1)  # d_k = 2 * hidden_dim
-        # Calcul des scores d'attention (scaled dot-product)
-        # Score = (Q • K^T) / sqrt(d_k)
+        d_k = K.size(-1)
         attn_scores = torch.bmm(Q, K.transpose(1, 2)) / math.sqrt(d_k)  # [batch_size, 1, seq_len]
-        attn_weights = F.softmax(attn_scores, dim=-1)  # [batch_size, 1, seq_len]
-        
-        # Calcul du vecteur de contexte comme somme pondérée des valeurs
-        context = torch.bmm(attn_weights, V)  # [batch_size, 1, 2*hidden_dim]
-        context = context.squeeze(1)  # [batch_size, 2*hidden_dim]
-        
-        # Optionnel : appliquer le dropout sur le vecteur de contexte
+        attn_weights = F.softmax(attn_scores, dim=-1)                    # [batch_size, 1, seq_len]
+        context = torch.bmm(attn_weights, V).squeeze(1)                   # [batch_size, 2*hidden_dim]
         context = self.dropout(context)
-        
-        # Passage par la couche de sortie pour obtenir les logits de classification
-        logits = self.fc(context)  # [batch_size, num_classes]
+        logits = self.fc(context)
         return logits
 
     def __len__(self):

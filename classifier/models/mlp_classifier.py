@@ -1,3 +1,4 @@
+# models/mlp_classifier.py
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -12,21 +13,19 @@ class MLPClassifier(nn.Module):
             num_classes (int): Number of output classes.
             num_hidden_layers (int): Number of hidden layers (0 = no hidden layers).
             dropout (float): Dropout probability.
-            pretrained_embeddings (Tensor, optional): Pretrained embedding matrix of size [vocab_size, embedding_dim].
-            freeze_embeddings (bool): If True, pretrained embeddings will not be updated during training.
+            pretrained_embeddings (Tensor, optional): Pretrained embedding matrix.
+            freeze_embeddings (bool): If True, pretrained embeddings are not updated during training.
         """
         super(MLPClassifier, self).__init__()
         
-        # Choice between pretrained embeddings or creating a standard embedding layer
+        # Choose pretrained embeddings if available
         if pretrained_embeddings is not None:
             self.embedding = nn.Embedding.from_pretrained(pretrained_embeddings, freeze=freeze_embeddings)
         else:
             self.embedding = nn.Embedding(vocab_size, embedding_dim)
         
-        # Define dropout layer to be used after activations
         self.dropout = nn.Dropout(dropout)
         
-        # If no hidden layers are used, directly connect embedding to the output
         if num_hidden_layers == 0:
             self.output_layer = nn.Linear(embedding_dim, num_classes)
         else:
@@ -38,31 +37,28 @@ class MLPClassifier(nn.Module):
 
     def forward(self, padded_sequences):
         """
+        Forward pass.
         Args:
-            padded_sequences : Tensor of shape [batch_size, seq_len]
+            padded_sequences (Tensor): [batch_size, seq_len]
         Returns:
-            logits : Tensor of shape [batch_size, num_classes]
+            logits (Tensor): [batch_size, num_classes]
         """
-        # Apply embedding: [batch_size, seq_len] -> [batch_size, seq_len, embedding_dim]
         emb = self.embedding(padded_sequences)
-        
-        # Create a mask to ignore padding (index 0 here)
-        mask = (padded_sequences != 0).unsqueeze(-1).float()  # [batch_size, seq_len, 1]
+        # Create a mask to ignore padding (assumes padding index 0)
+        mask = (padded_sequences != 0).unsqueeze(-1).float()
         emb = emb * mask
-        
-        # Mean pooling: sum over the temporal dimension (i.e., the sequence) divided by the number of actual tokens
-        sum_emb = emb.sum(dim=1)            # [batch_size, embedding_dim]
-        lengths = mask.sum(dim=1)           # [batch_size, 1]
+        # Mean pooling over the sequence length
+        sum_emb = emb.sum(dim=1)
+        lengths = mask.sum(dim=1)
         avg_emb = sum_emb / lengths.clamp(min=1)
         
-        # Pass through the MLP with dropout after each activation
         if hasattr(self, 'input_layer'):
             out = F.relu(self.input_layer(avg_emb))
-            out = self.dropout(out)  # Apply dropout after the input layer
+            out = self.dropout(out)
             if hasattr(self, 'hidden_layers'):
                 for layer in self.hidden_layers:
                     out = F.relu(layer(out))
-                    out = self.dropout(out)  # Apply dropout after each hidden layer
+                    out = self.dropout(out)
             logits = self.output_layer(out)
         else:
             logits = self.output_layer(avg_emb)

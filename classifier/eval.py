@@ -1,44 +1,20 @@
+# eval.py
 import torch
-from torch.utils.data import DataLoader
-from torch.nn.utils.rnn import pad_sequence
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_curve, auc
-
 from models.mlp_classifier import MLPClassifier
 from article_dataset import ArticleDataset
-
-def load_checkpoint(checkpoint_path, device):
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    hyperparams = checkpoint['hyperparameters']
-    
-    model = MLPClassifier(
-        hyperparams['vocab_size'],
-        hyperparams['embedding_dim'],
-        hyperparams['hidden_dim'],
-        hyperparams['num_classes'],
-        hyperparams['num_hidden_layers']
-    )
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.to(device)
-    model.eval()  # evaluation mode
-    return model, hyperparams
-
-def preprocess_text(text, wtoi):
-    tokens = text.split()
-    indices = [wtoi.get(token, wtoi.get("<UNK>", 0)) for token in tokens]
-    return torch.tensor(indices, dtype=torch.long)
-
-def custom_collate(batch, pad_value=0):
-    sequences, labels = zip(*batch)
-    # Pad sequences to obtain uniform tensors
-    padded_sequences = pad_sequence(sequences, batch_first=True, padding_value=pad_value)
-    labels = torch.tensor(labels)
-    return padded_sequences, labels
+from utils import custom_collate, load_checkpoint, preprocess_text
+import os
 
 def evaluate_model(model, dataset, device, batch_size=32):
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False,
-                            collate_fn=custom_collate)
+    """
+    Evaluates the model on the given dataset.
+    Returns accuracy, classification report, and confusion matrix.
+    """
+    from torch.utils.data import DataLoader
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
     all_preds = []
     all_labels = []
     with torch.no_grad():
@@ -51,27 +27,42 @@ def evaluate_model(model, dataset, device, batch_size=32):
             all_labels.extend(labels.cpu().numpy())
     
     accuracy = accuracy_score(all_labels, all_preds)
-    itoc = {index: label for label, index in dataset.ctoi.items()}
-    
-    classes = [itoc[i] for i in range(len(itoc))]
-    report = classification_report(all_labels, all_preds, target_names=classes)
+
+     # If dataset is a Subset, get the original dataset attributes.
+    if hasattr(dataset, "index_to_class"):
+        index_to_class = dataset.index_to_class
+    elif hasattr(dataset, "dataset") and hasattr(dataset.dataset, "index_to_class"):
+        index_to_class = dataset.dataset.index_to_class
+    else:
+        raise AttributeError("The provided dataset does not have an 'index_to_class' attribute.")
+    report = classification_report(all_labels, all_preds, target_names=[index_to_class[i] for i in range(len(index_to_class))])
+
     conf_matrix = confusion_matrix(all_labels, all_preds)
     
     return accuracy, report, conf_matrix
 
-def plot_confusion_matrix(conf_matrix, classes):
+def plot_confusion_matrix(conf_matrix, classes, output_path=None):
+    """
+    Plots a confusion matrix heatmap.
+    If output_path is specified, saves the plot to that file.
+    """
     plt.figure(figsize=(8, 6))
     sns.heatmap(conf_matrix, fmt='d', cmap='Blues',
                 xticklabels=classes, yticklabels=classes)
     plt.xlabel("Predictions")
     plt.ylabel("True Classes")
     plt.title("Confusion Matrix")
+    if output_path:
+        plt.savefig(output_path)
+        print(f"[INFO] Confusion matrix plot saved as '{output_path}'.")
     plt.show()
 
 def analyze_errors(model, dataset, device, batch_size=32, num_examples=5):
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True,
-                            collate_fn=custom_collate)
-    
+    """
+    Displays examples of misclassified texts.
+    """
+    from torch.utils.data import DataLoader
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
     misclassified = []
     with torch.no_grad():
         for texts, labels in dataloader:
@@ -80,28 +71,26 @@ def analyze_errors(model, dataset, device, batch_size=32, num_examples=5):
             preds = outputs.argmax(dim=1)
             for i in range(len(labels)):
                 if preds[i].item() != labels[i].item():
-                    # Reconstruct the text from indices (ignoring padding 0)
-                    itow = {idx: word for word, idx in dataset.wtoi.items()}
-                    token_ids = texts[i].cpu().numpy()
-                    words = [itow.get(idx, "<UNK>") for idx in token_ids if idx != 0]
+                    words = [dataset.index_to_word.get(idx, "<unk>") for idx in texts[i].cpu().numpy() if idx != 0]
                     misclassified.append((" ".join(words), labels[i].item(), preds[i].item()))
             if len(misclassified) >= num_examples:
                 break
-    
     if misclassified:
         print("\nExamples of misclassified texts:")
-        itoc = {index: label for label, index in dataset.ctoi.items()}
         for text, true_idx, pred_idx in misclassified[:num_examples]:
             print("Text       :", text)
-            print("True Label :", itoc.get(true_idx, "Unknown"))
-            print("Predicted  :", itoc.get(pred_idx, "Unknown"))
+            print("True Label :", dataset.index_to_class.get(true_idx, "Unknown"))
+            print("Predicted  :", dataset.index_to_class.get(pred_idx, "Unknown"))
             print("-----")
     else:
         print("\nNo misclassified examples found.")
 
 def plot_roc_curve(model, dataset, device, batch_size=32):
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False,
-                            collate_fn=lambda batch: custom_collate(batch))
+    """
+    Plots the ROC curve for binary classification.
+    """
+    from torch.utils.data import DataLoader
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
     all_probs = []
     all_labels = []
     
@@ -109,7 +98,7 @@ def plot_roc_curve(model, dataset, device, batch_size=32):
         for texts, labels in dataloader:
             texts = texts.to(device)
             outputs = model(texts)
-            probs = torch.softmax(outputs, dim=1)[:, 1]  # Probability of the positive class
+            probs = torch.softmax(outputs, dim=1)[:, 1]
             all_probs.extend(probs.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
     
@@ -125,36 +114,3 @@ def plot_roc_curve(model, dataset, device, batch_size=32):
     plt.legend(loc="lower right")
     plt.show()
 
-def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    checkpoint_path = "trained_models/categories.pth"
-    
-    model, hyperparams = load_checkpoint(checkpoint_path, device)
-    dataset = ArticleDataset("data/articles.csv")
-    filters = {
-        "min_papers" : 5000, 
-        "min_freq": 2,
-    }
-    dataset.apply_filters(filters)
-    
-
-    
-    accuracy, report, conf_matrix = evaluate_model(model, dataset, device, batch_size=32)
-    with open("eval_results/results.txt", "w", encoding="utf-8") as f:
-        f.write("Overall Accuracy : {:.2f}%\n".format(accuracy * 100))
-        f.write("\nClassification Report:\n")
-        f.write(report)
-        f.write("\nConfusion Matrix:\n")
-        f.write(str(conf_matrix))
-    
-    itoc = {index: label for label, index in dataset.ctoi.items()}
-    classes = [itoc[i] for i in range(len(itoc))]
-    plot_confusion_matrix(conf_matrix, classes)
-   
-    analyze_errors(model, dataset, device, batch_size=32, num_examples=5)
-    
-    if hyperparams['num_classes'] == 2:
-        plot_roc_curve(model, dataset, device, batch_size=32)
-
-if __name__ == "__main__":
-    main()
