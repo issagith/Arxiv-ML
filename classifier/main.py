@@ -3,7 +3,8 @@ import torch
 import numpy as np
 from article_dataset import ArticleDataset
 from models.mlp_classifier import MLPClassifier
-from models.bilstm_classifier import BiLSTMClassifier, BiLSTMHClassifier
+from models.bilstm_classifier import BiLSTMClassifier
+from models.bilstmattention_classifier import BiLSTMAttentionClassifier
 from train import train
 from eval import evaluate_model, plot_confusion_matrix, analyze_errors
 from gensim.models import KeyedVectors
@@ -12,10 +13,10 @@ from gensim.models import KeyedVectors
 # Constants and general parameters
 CSV_FILE = "data/articles.csv"
 CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
-MODEL = "bilstmH"
+MODEL = "bilstm_attention"
 MODELS = {
     "bilstm": BiLSTMClassifier,
-    "bilstmH": BiLSTMHClassifier,
+    "bilstm_attention": BiLSTMAttentionClassifier,
     "mlp": MLPClassifier
 }
 
