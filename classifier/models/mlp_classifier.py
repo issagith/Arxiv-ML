@@ -2,18 +2,28 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class MLPClassifier(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes, num_hidden_layers=1):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes, num_hidden_layers=1,
+                 pretrained_embeddings=None, freeze_embeddings=False):
         """
         Args:
             vocab_size (int): Vocabulary size.
             embedding_dim (int): Embedding dimension.
             hidden_dim (int): Hidden layer dimension.
             num_classes (int): Number of output classes.
-            num_hidden_layers (int): Number of hidden layers (0 = no hidden layer).
+            num_hidden_layers (int): Number of hidden layers (0 = no hidden layers).
+            pretrained_embeddings (Tensor, optional): Pretrained embedding matrix of size [vocab_size, embedding_dim].
+            freeze_embeddings (bool): If True, pretrained embeddings will not be updated during training.
         """
         super(MLPClassifier, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        # If there are no hidden layers, pass directly from the embedding to the output
+        
+        # Choice between pretrained embeddings or creating a standard embedding layer
+        if pretrained_embeddings is not None:
+            # Use embedding from pretrained weights
+            self.embedding = nn.Embedding.from_pretrained(pretrained_embeddings, freeze=freeze_embeddings)
+        else:
+            self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        
+        # If no hidden layers are used, directly connect embedding to the output
         if num_hidden_layers == 0:
             self.output_layer = nn.Linear(embedding_dim, num_classes)
         else:
@@ -33,11 +43,11 @@ class MLPClassifier(nn.Module):
         # Apply embedding: [batch_size, seq_len] -> [batch_size, seq_len, embedding_dim]
         emb = self.embedding(padded_sequences)
         
-        # Create a mask to ignore padding (here index 0)
+        # Create a mask to ignore padding (index 0 here)
         mask = (padded_sequences != 0).unsqueeze(-1).float()  # [batch_size, seq_len, 1]
         emb = emb * mask
         
-        # Mean pooling: sum over the temporal (i.e word sequence) dimension divided by the number of real tokens
+        # Mean pooling: sum over the temporal dimension (i.e., the sequence) divided by the number of actual tokens
         sum_emb = emb.sum(dim=1)            # [batch_size, embedding_dim]
         lengths = mask.sum(dim=1)           # [batch_size, 1]
         avg_emb = sum_emb / lengths.clamp(min=1)
@@ -55,38 +65,3 @@ class MLPClassifier(nn.Module):
     
     def __len__(self):
         return sum(p.numel() for p in self.parameters())
-
-if __name__ == "__main__":
-    import sys
-    sys.path.append("..")
-    from article_dataset import ArticleDataset
-    from models.mlp_classifier import MLPClassifier
-
-    csv_file = "../data/sci_papers.csv"  
-    dataset = ArticleDataset(csv_file)
-
-    filters = {
-        "min_papers" : 5000, 
-        "min_freq": 2,
-    }
-    dataset.apply_filters(filters)
-    
-    vocab_size = len(dataset.wtoi)
-    embedding_dim = 64
-    hidden_dim = 512
-    num_classes = len(dataset.ctoi)
-    num_hidden_layers = 1
-
-    hyperparams = {
-        'vocab_size': vocab_size,
-        'embedding_dim': embedding_dim,
-        'hidden_dim': hidden_dim,
-        'num_classes': num_classes,
-        'num_hidden_layers': num_hidden_layers
-    }
-    model = MLPClassifier(vocab_size, embedding_dim, hidden_dim, num_classes, num_hidden_layers)
-    
-    print(len(model))
-    for p in model.parameters():
-        print(p.shape)
-   
