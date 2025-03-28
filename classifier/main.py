@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from article_dataset import ArticleDataset
 from models.mlp_classifier import MLPClassifier
+from models.bilstm_classifier import BiLSTMClassifier, BiLSTMHClassifier
 from train import train
 from eval import evaluate_model, plot_confusion_matrix, analyze_errors
 from gensim.models import KeyedVectors
@@ -11,6 +12,12 @@ from gensim.models import KeyedVectors
 # Constants and general parameters
 CSV_FILE = "data/articles.csv"
 CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
+MODEL = "bilstmH"
+MODELS = {
+    "bilstm": BiLSTMClassifier,
+    "bilstmH": BiLSTMHClassifier,
+    "mlp": MLPClassifier
+}
 
 # Model hyperparameters
 EMBEDDING_DIM = 300
@@ -74,7 +81,7 @@ if not IS_CUSTOM_EMB:
     print(f"{missing_words}/{len(dataset.wtoi)} words are not present in Word2Vec.")
 
     # Creating the model with pre-trained embeddings
-    model = MLPClassifier(
+    model = MODELS[MODEL](
         VOCAB_SIZE,
         EMBEDDING_DIM,
         HIDDEN_DIM,
@@ -85,7 +92,7 @@ if not IS_CUSTOM_EMB:
         freeze_embeddings=FREEZE_EMBEDDINGS
     ).to(device)
 else:
-    model = MLPClassifier(VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, NUM_CLASSES, NUM_HIDDEN_LAYERS, DROPOUT).to(device)
+    model = MODELS[MODEL](VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, NUM_CLASSES, NUM_HIDDEN_LAYERS, DROPOUT).to(device)
 
 # -----------------------------
 # Training the model
@@ -108,4 +115,4 @@ checkpoint = {
     'hyperparameters': hyperparams,
     'dataset_filters': filters
 }
-torch.save(checkpoint, "trained_models/test_w2v.pth")
+torch.save(checkpoint, "trained_models/bilstm.pth")
