@@ -107,8 +107,8 @@ def train(model, dataset, batch_size=32, num_epochs=10, learning_rate=0.001, tra
     
     # Splitting the dataset into training and testing sets
     train_size = int(len(dataset) * train_ratio)
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+    train_dataset = torch.utils.data.Subset(dataset, range(0, train_size))
+    test_dataset = torch.utils.data.Subset(dataset, range(train_size, len(dataset)))
     
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=False)

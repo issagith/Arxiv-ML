@@ -69,7 +69,7 @@ def plot_confusion_matrix(conf_matrix, classes):
     plt.show()
 
 def analyze_errors(model, dataset, device, batch_size=32, num_examples=5):
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False,
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True,
                             collate_fn=custom_collate)
     
     misclassified = []
