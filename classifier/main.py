@@ -1,16 +1,17 @@
 # main.py
 import os
 import torch
-import numpy as np
 from article_dataset import ArticleDataset
 from models.mlp_classifier import MLPClassifier
 from models.bilstm_classifier import BiLSTMClassifier
 from models.bilstmattention_classifier import BiLSTMAttentionClassifier
 from train import train
-from eval import evaluate_model, plot_confusion_matrix, analyze_errors
+from eval import evaluate_model, plot_confusion_matrix
 from gensim.models import KeyedVectors
 from utils import build_embedding_matrix
 import logging
+from torch.utils.data import DataLoader
+from utils import custom_collate
 
 # Ask the user for an experiment name
 experiment_name = input("Enter experiment name: ").strip()
@@ -40,7 +41,7 @@ logging.basicConfig(
 # -----------------------------
 # Constants and general parameters
 CSV_FILE = "data/articles.csv"
-CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
+CLASSIFICATION_LEVEL = "sub_category"  # "category" or "sub_category"
 MODEL = "mlp"
 MODELS = {
     "bilstm": BiLSTMClassifier,
@@ -49,12 +50,13 @@ MODELS = {
 }
 
 # Model hyperparameters
-EMBEDDING_DIM = 300
+EMBEDDING_DIM = 64
 HIDDEN_DIM = 128
 NUM_HIDDEN_LAYERS = 3
-IS_CUSTOM_EMB = False
+batch_size = 128
+IS_CUSTOM_EMB = True
 FREEZE_EMBEDDINGS = False
-DROPOUT = 0.5
+DROPOUT = 0.3
 
 # -----------------------------
 # Dataset initialization
@@ -68,6 +70,19 @@ filters = {
 }
 dataset.apply_filters(filters)
 print("[INFO] Dataset ready!")
+
+# Shuffle the dataset randomly before splitting into train and test sets
+from torch.utils.data import random_split
+
+train_ratio = 0.8  # Must be the same ratio used in training
+train_size = int(len(dataset) * train_ratio)
+test_size = len(dataset) - train_size
+
+# Perform a random split of the dataset
+train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=custom_collate)
+test_dataloader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=custom_collate)
 
 # Determining dimensions
 VOCAB_SIZE = len(dataset.word_to_index)
@@ -119,8 +134,7 @@ else:
 print(f"[INFO] Hyperparameters: {hyperparams}")
 print(f"[INFO] model size: {len(model)} parameters")
 # Pass the experiment directory so that logs/plots are saved in the proper subfolders
-train(model, dataset, batch_size=64, num_epochs=2, learning_rate=0.001,
-      train_ratio=0.8, plot_window_size=1000, output_dir=experiment_dir)
+train(model, train_dataloader, test_dataloader, num_epochs=5, learning_rate=0.001, plot_window_size=1000, output_dir=experiment_dir)
 
 # Save the model
 checkpoint = {
@@ -133,13 +147,6 @@ torch.save(checkpoint, model_save_path)
 print(f"[INFO] Model saved at {model_save_path}")
 
 # -----------------------------
-# Evaluation on train and test sets separately
-from torch.utils.data import Subset
-
-train_ratio = 0.8  # Must be the same ratio used in training
-train_size = int(len(dataset) * train_ratio)
-train_dataset = Subset(dataset, range(0, train_size))
-test_dataset = Subset(dataset, range(train_size, len(dataset)))
 
 # Evaluation on the training set
 print("[INFO] Evaluating on training set...")
