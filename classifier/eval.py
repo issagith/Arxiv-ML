@@ -35,7 +35,9 @@ def evaluate_model(model, dataset, device, batch_size=32):
         index_to_class = dataset.dataset.index_to_class
     else:
         raise AttributeError("The provided dataset does not have an 'index_to_class' attribute.")
-    report = classification_report(all_labels, all_preds, target_names=[index_to_class[i] for i in range(len(index_to_class))])
+    labels = list(range(len(index_to_class)))
+    target_names = [index_to_class[i] for i in labels]
+    report = classification_report(all_labels, all_preds, labels=labels, target_names=target_names)
 
     conf_matrix = confusion_matrix(all_labels, all_preds)
     

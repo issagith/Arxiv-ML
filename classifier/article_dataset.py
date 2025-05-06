@@ -4,6 +4,7 @@ from torch.utils.data import Dataset
 import pandas as pd
 import re
 from collections import Counter
+from categories import subcats, cats
 
 class ArticleDataset(Dataset):
     def __init__(self, csv_file, classification_level="category", filter_params=None):
@@ -18,7 +19,23 @@ class ArticleDataset(Dataset):
         # Create columns for main and sub categories
         self.data["main_category"] = self.data["category"].apply(lambda x: x.split(".")[0])
         self.data["sub_category"] = self.data["category"].apply(lambda x: x.split(".")[1] if len(x.split(".")) > 1 else None)
+
+        # filter out rows with unvalid categories
+        self.data = self.data[self.data["main_category"].isin(cats)]
+
+        # filter out rows with unvalid subcategories
+        def valid_sub(row):
+            main = row["main_category"]
+            subs = subcats.get(main, [])
+            # aucun sous‐cat défini → on n’accepte que les entrées 'main' pures
+            if not subs:
+                return row["sub_category"] is None
+            # sinon, on vérifie que 'main.sub' est dans la liste
+            full = f"{main}.{row['sub_category']}"
+            return full in subs
         
+        self.data = (self.data.loc[self.data.apply(valid_sub, axis=1)].reset_index(drop=True))
+
         # Build vocabulary without frequency filtering
         self.vocab = self.create_vocab(apply_filter=False)
         self.word_to_index = {word: i for i, word in enumerate(self.vocab, start=1)}
@@ -84,6 +101,15 @@ class ArticleDataset(Dataset):
                 counts = self.data["sub_category"].value_counts()
                 valid = counts[counts >= filter_params["min_papers"]].index
                 self.data = self.data[self.data["sub_category"].isin(valid)]
+
+        if "max_papers" in filter_params:
+            max_p = filter_params["max_papers"]
+            if self.classification_level == "category":
+                grp = self.data.groupby("main_category", group_keys=False)
+            else:  # sub_category
+                grp = self.data.groupby("sub_category", group_keys=False)
+            # pour chaque groupe, on prend un échantillon de taille <= max_p
+            self.data = grp.apply(lambda df: df.sample(n=min(len(df), max_p))).reset_index(drop=True)
         
         if "top_n" in filter_params:
             if self.classification_level == "category":
@@ -117,3 +143,10 @@ class ArticleDataset(Dataset):
                                dtype=torch.long)
         label = torch.tensor(self.class_to_index[cat], dtype=torch.long)
         return indices, label
+
+
+if __name__ == "__main__":
+    # Example usage
+    dataset = ArticleDataset("data/articles.csv", classification_level="category")
+    
+    

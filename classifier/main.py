@@ -12,6 +12,7 @@ from utils import build_embedding_matrix
 import logging
 from torch.utils.data import DataLoader
 from utils import custom_collate
+import article_dataset
 
 # Ask the user for an experiment name
 experiment_name = input("Enter experiment name: ").strip()
@@ -41,7 +42,7 @@ logging.basicConfig(
 # -----------------------------
 # Constants and general parameters
 CSV_FILE = "data/articles.csv"
-CLASSIFICATION_LEVEL = "sub_category"  # "category" or "sub_category"
+CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
 MODEL = "mlp"
 MODELS = {
     "bilstm": BiLSTMClassifier,
@@ -65,8 +66,8 @@ dataset = ArticleDataset(CSV_FILE, classification_level=CLASSIFICATION_LEVEL)
 
 # Applying filters to the dataset
 filters = {
-    "min_papers": 5000,  # minimum number of documents per category
-    "min_freq": 2,       # minimum frequency of a word to be included in the vocabulary
+    "max_papers": 5000,  
+    "min_freq": 2,       
 }
 dataset.apply_filters(filters)
 print("[INFO] Dataset ready!")
@@ -80,6 +81,10 @@ test_size = len(dataset) - train_size
 
 # Perform a random split of the dataset
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+
+print("[DEBUG] article_dataset module loaded from:", article_dataset.__file__)
+print("[DEBUG] classification_level:", dataset.classification_level)
+print("[DEBUG] classes mapping:", dataset.index_to_class)
 
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=custom_collate)
 test_dataloader = DataLoader(test_dataset, batch_size=batch_size, collate_fn=custom_collate)
