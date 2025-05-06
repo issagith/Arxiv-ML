@@ -1,0 +1,2 @@
+- entrainer des modèles par catégorie pour qu'ils classifient les sous catégories de la catégorie donnée
+- validation croisée pour trouver les meilleurs hypers

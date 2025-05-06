@@ -1,0 +1,1 @@
+- améliorer le scraper pour qu'il gère le problème de classes imbalanced (impossible)
