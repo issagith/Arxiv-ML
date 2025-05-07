@@ -1,0 +1,8 @@
+- fix la validation croisée | done
+- k optimal kmeans 
+- recommendation system 
+- adapter classif à l'utilisation de l'abstract 
+- utiliser un pretrained transformer (huggingface)
+
+bonus : 
+- fine tuning d'un transformer pour la génération de titre depuis un résumé

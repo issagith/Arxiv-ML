@@ -121,7 +121,7 @@ if __name__ == "__main__":
     param_grid = {'embedding_dim': [64, 128, 256], 'hidden_dim': [128, 256, 512, 1024],
                   'num_hidden_layers': [2, 3, 4], 'dropout': [0.3, 0.5]}
     
-    k_folds, num_epochs, lr, bs = 5, 10, 0.001, 128
+    k_folds, num_epochs, lr, bs = 3, 10, 0.001, 128
 
     device = 'cuda' 
 
@@ -136,7 +136,6 @@ if __name__ == "__main__":
 
     # save results  and history to files
     import json
-    import os
     with open("experiments/cross_val_results.json", "w") as f:
         json.dump(results, f, indent=4)
     with open("results/cv_history.json", "w") as f:
