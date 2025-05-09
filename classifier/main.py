@@ -43,6 +43,7 @@ logging.basicConfig(
 # Constants and general parameters
 CSV_FILE = "data/articles.csv"
 CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
+USE_SUMMARY = True  # Use summary instead of title for classification
 MODEL = "mlp"
 MODELS = {
     "bilstm": BiLSTMClassifier,
@@ -51,9 +52,9 @@ MODELS = {
 }
 
 # Model hyperparameters
-EMBEDDING_DIM = 64
+EMBEDDING_DIM = 128
 HIDDEN_DIM = 128
-NUM_HIDDEN_LAYERS = 3
+NUM_HIDDEN_LAYERS = 2
 batch_size = 128
 IS_CUSTOM_EMB = True
 FREEZE_EMBEDDINGS = False
@@ -62,12 +63,11 @@ DROPOUT = 0.3
 # -----------------------------
 # Dataset initialization
 print("[INFO] Initializing dataset...")
-dataset = ArticleDataset(CSV_FILE, classification_level=CLASSIFICATION_LEVEL)
+dataset = ArticleDataset(CSV_FILE, use_summary=USE_SUMMARY, classification_level=CLASSIFICATION_LEVEL)
 
 # Applying filters to the dataset
 filters = {
-    "max_papers": 5000,  
-    "min_freq": 2,       
+    "min_freq": 10,       
 }
 dataset.apply_filters(filters)
 print("[INFO] Dataset ready!")

@@ -7,7 +7,7 @@ from collections import Counter
 from categories import subcats, cats
 
 class ArticleDataset(Dataset):
-    def __init__(self, csv_file, classification_level="category", filter_params=None):
+    def __init__(self, csv_file, use_summary=False, classification_level="category", filter_params=None):
         """
         Initializes the dataset from a CSV file.
         Constructs vocabulary and class mappings.
@@ -15,6 +15,7 @@ class ArticleDataset(Dataset):
         # Load CSV and drop duplicates based on "summary"
         self.data = pd.read_csv(csv_file, engine="python").drop_duplicates(subset="summary")
         self.classification_level = classification_level
+        self.use_summary = use_summary
         
         # Create columns for main and sub categories
         self.data["main_category"] = self.data["category"].apply(lambda x: x.split(".")[0])
@@ -132,7 +133,7 @@ class ArticleDataset(Dataset):
         Returns the tokenized title and the corresponding class label.
         """
         row = self.data.iloc[idx]
-        text = row["title"]
+        text = row["title"] if not self.use_summary else row["summary"]
         if self.classification_level == "category":
             cat = row["main_category"]
         elif self.classification_level == "sub_category":
