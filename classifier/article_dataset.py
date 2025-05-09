@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 import pandas as pd
 import re
 from collections import Counter
-from .categories import subcats, cats
+from categories import subcats, cats
 
 class ArticleDataset(Dataset):
     def __init__(self, csv_file, classification_level="category", filter_params=None):

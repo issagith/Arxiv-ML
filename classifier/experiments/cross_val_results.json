@@ -1,0 +1,122 @@
+[
+    {
+        "params": {
+            "num_hidden_layers": 3,
+            "hidden_dim": 256,
+            "embedding_dim": 64,
+            "dropout": 0.3
+        },
+        "avg_val_loss": 0.7184760581458793,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.43914908859996,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 4,
+            "hidden_dim": 128,
+            "embedding_dim": 256,
+            "dropout": 0.5
+        },
+        "avg_val_loss": 0.8052695257309126,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 74.43032409857287,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 2,
+            "hidden_dim": 512,
+            "embedding_dim": 128,
+            "dropout": 0.3
+        },
+        "avg_val_loss": 0.712497763789959,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.66710086051793,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 2,
+            "hidden_dim": 128,
+            "embedding_dim": 64,
+            "dropout": 0.3
+        },
+        "avg_val_loss": 0.716271771127401,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.39233756400967,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 3,
+            "hidden_dim": 256,
+            "embedding_dim": 256,
+            "dropout": 0.3
+        },
+        "avg_val_loss": 0.7156823807632728,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.66140206621999,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 4,
+            "hidden_dim": 128,
+            "embedding_dim": 128,
+            "dropout": 0.5
+        },
+        "avg_val_loss": 0.8109872759052825,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 74.16166665309811,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 3,
+            "hidden_dim": 1024,
+            "embedding_dim": 64,
+            "dropout": 0.3
+        },
+        "avg_val_loss": 0.719189801283517,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.57673426522189,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 3,
+            "hidden_dim": 1024,
+            "embedding_dim": 256,
+            "dropout": 0.3
+        },
+        "avg_val_loss": 0.7280372042593561,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.7586886260207,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 2,
+            "hidden_dim": 128,
+            "embedding_dim": 128,
+            "dropout": 0.3
+        },
+        "avg_val_loss": 0.7110805240982012,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.5425414994342,
+        "std_val_accuracy": 0.0
+    },
+    {
+        "params": {
+            "num_hidden_layers": 2,
+            "hidden_dim": 512,
+            "embedding_dim": 128,
+            "dropout": 0.5
+        },
+        "avg_val_loss": 0.7119020555921225,
+        "std_val_loss": 0.0,
+        "avg_val_accuracy": 76.39925752851433,
+        "std_val_accuracy": 0.0
+    }
+]

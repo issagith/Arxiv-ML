@@ -115,19 +115,19 @@ if __name__ == "__main__":
 
     # Dataset setup
     dataset = ArticleDataset("data/articles.csv", classification_level="category")
-    dataset.apply_filters({"max_papers": 30000, "min_papers": 5000, "min_freq": 5})
+    dataset.apply_filters({"min_papers": 5000, "min_freq": 5})
 
     # Common params\>n    param_grid = {'embedding_dim': [64], 'hidden_dim': [128], 'num_hidden_layers': [2], 'dropout': [0.3, 0.5]}
     param_grid = {'embedding_dim': [64, 128, 256], 'hidden_dim': [128, 256, 512, 1024],
                   'num_hidden_layers': [2, 3, 4], 'dropout': [0.3, 0.5]}
     
-    k_folds, num_epochs, lr, bs = 3, 10, 0.001, 128
+    k_folds, num_epochs, lr, bs = 1, 10, 0.001, 128
 
     device = 'cuda' 
 
-    n_iter = 5
+    n_iter = 10
     hp_list = list(ParameterSampler(param_grid, n_iter=n_iter, random_state=42))
-    splitter = KFold(n_splits=k_folds, shuffle=True, random_state=42)
+    splitter = ShuffleSplit(n_splits=k_folds, test_size=0.2, random_state=42)
     
     results, history = cross_validate(
         MLPClassifier, dataset, hp_list, splitter, k_folds=k_folds, num_epochs=num_epochs,
