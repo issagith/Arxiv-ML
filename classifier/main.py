@@ -32,7 +32,7 @@ os.makedirs(plots_dir, exist_ok=True)
 # Configure logging to save logs in the experiment's logs folder
 logging.basicConfig(
     level=logging.INFO,
-    format="%(message)s",
+    format='%(asctime)s %(levelname)s: %(message)s',
     handlers=[
         logging.StreamHandler(),
         logging.FileHandler(os.path.join(logs_dir, "training_log.txt"), mode="w", encoding="utf-8")
@@ -42,9 +42,10 @@ logging.basicConfig(
 # -----------------------------
 # Constants and general parameters
 CSV_FILE = "data/articles.csv"
-CLASSIFICATION_LEVEL = "sub_category"  # "category" or "sub_category"
-SELECTED_CATEGORIES = ["math"]  # List of categories to include, or None for all
-USE_SUMMARY = True  # Use summary instead of title for classification
+CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
+SELECTED_CATEGORIES = None  # List of categories to include, or None for all
+USE_SUMMARY = False  # Use summary instead of title for classification
+EPOCHS = 5  
 MODEL = "mlp"
 MODELS = {
     "bilstm": BiLSTMClassifier,
@@ -56,7 +57,7 @@ MODELS = {
 EMBEDDING_DIM = 128
 HIDDEN_DIM = 128
 NUM_HIDDEN_LAYERS = 2
-batch_size = 128
+batch_size = 64
 IS_CUSTOM_EMB = True
 FREEZE_EMBEDDINGS = False
 DROPOUT = 0.3
@@ -68,7 +69,8 @@ dataset = ArticleDataset(CSV_FILE, use_summary=USE_SUMMARY, classification_level
 
 # Applying filters to the dataset
 filters = {
-          
+    "min_freq": 5,  # Minimum frequency of words in the vocabulary
+      # Minimum number of papers in each category
 }
 dataset.apply_filters(filters)
 print("[INFO] Dataset ready!")
@@ -140,7 +142,7 @@ else:
 print(f"[INFO] Hyperparameters: {hyperparams}")
 print(f"[INFO] model size: {len(model)} parameters")
 # Pass the experiment directory so that logs/plots are saved in the proper subfolders
-train(model, train_dataloader, test_dataloader, num_epochs=5, learning_rate=0.001, plot_window_size=1000, output_dir=experiment_dir)
+train(model, train_dataloader, test_dataloader, num_epochs=EPOCHS, learning_rate=0.001, plot_window_size=1000, output_dir=experiment_dir)
 
 # Save the model
 checkpoint = {

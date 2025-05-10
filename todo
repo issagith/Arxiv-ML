@@ -1,8 +1,8 @@
 - fix la validation croisée | done
 - k optimal kmeans 
 - recommendation system 
-- adapter classif à l'utilisation de l'abstract 
+- adapter classif à l'utilisation de l'abstract | done 
 - utiliser un pretrained transformer (huggingface)
-
+- tester les modèles sous catégories pour la classification des catégories
 bonus : 
 - fine tuning d'un transformer pour la génération de titre depuis un résumé

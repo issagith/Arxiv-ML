@@ -36,11 +36,11 @@ def predict(text, model, wtoi, device):
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    checkpoint_path = "trained_models/test.pth"
+    checkpoint_path = "experiments/mlp/mlp_summary_fulldb.pth"
     model, hyperparams = load_checkpoint(checkpoint_path, device)
     
     # Load the dataset to retrieve the wtoi and ctoi mappings from the dataset
-    dataset = ArticleDataset("data/sci_papers.csv")
+    dataset = ArticleDataset("data/articles.csv")
     
     text = "Importance of words in english"
     prediction_idx = predict(text, model, dataset.wtoi, device)
