@@ -7,10 +7,17 @@ from collections import Counter
 from categories import subcats, cats
 
 class ArticleDataset(Dataset):
-    def __init__(self, csv_file, use_summary=False, classification_level="category", filter_params=None):
+    def __init__(self, csv_file, use_summary=False, classification_level="category", filter_params=None, selected_categories=None):
         """
         Initializes the dataset from a CSV file.
         Constructs vocabulary and class mappings.
+
+        Args:
+            csv_file: Path to the CSV file containing the dataset
+            use_summary: Whether to use article summaries instead of titles for classification
+            classification_level: Either "category" or "sub_category"
+            filter_params: Dictionary of filtering parameters
+            selected_categories: List of categories to include in the dataset. If None, all valid categories are used.
         """
         # Load CSV and drop duplicates based on "summary"
         self.data = pd.read_csv(csv_file, engine="python").drop_duplicates(subset="summary")
@@ -21,21 +28,30 @@ class ArticleDataset(Dataset):
         self.data["main_category"] = self.data["category"].apply(lambda x: x.split(".")[0])
         self.data["sub_category"] = self.data["category"].apply(lambda x: x.split(".")[1] if len(x.split(".")) > 1 else None)
 
-        # filter out rows with unvalid categories
-        self.data = self.data[self.data["main_category"].isin(cats)]
+        # Filter by selected categories if provided
+        if selected_categories is not None:
+            # Ensure selected categories are valid
+            selected_categories = [cat for cat in selected_categories if cat in cats]
+            if not selected_categories:
+                raise ValueError("No valid categories selected.")
+            
+            self.data = self.data[self.data["main_category"].isin(selected_categories)]
+            
+        else: # filter out rows with unvalid categories 
+            self.data = self.data[self.data["main_category"].isin(cats)]
 
-        # filter out rows with unvalid subcategories
-        def valid_sub(row):
-            main = row["main_category"]
-            subs = subcats.get(main, [])
-            # aucun sous‐cat défini → on n’accepte que les entrées 'main' pures
-            if not subs:
-                return row["sub_category"] is None
-            # sinon, on vérifie que 'main.sub' est dans la liste
-            full = f"{main}.{row['sub_category']}"
-            return full in subs
-        
-        self.data = (self.data.loc[self.data.apply(valid_sub, axis=1)].reset_index(drop=True))
+            # filter out rows with unvalid subcategories
+            def valid_sub(row):
+                main = row["main_category"]
+                subs = subcats.get(main, [])
+                # aucun sous‐cat défini → on n’accepte que les entrées 'main' pures
+                if not subs:
+                    return row["sub_category"] is None
+                # sinon, on vérifie que 'main.sub' est dans la liste
+                full = f"{main}.{row['sub_category']}"
+                return full in subs
+            
+            self.data = (self.data.loc[self.data.apply(valid_sub, axis=1)].reset_index(drop=True))
 
         # Build vocabulary without frequency filtering
         self.vocab = self.create_vocab(apply_filter=False)
@@ -148,6 +164,14 @@ class ArticleDataset(Dataset):
 
 if __name__ == "__main__":
     # Example usage
-    dataset = ArticleDataset("data/articles.csv", classification_level="category")
+    dataset = ArticleDataset("data/articles.csv", use_summary=True, classification_level="sub_category", selected_categories=["econ"])
+    print("Number of articles in dataset:", len(dataset))
+    print("Vocabulary size:", len(dataset.vocab))
     
     
+    for i, (indices, label) in enumerate(dataset):
+        if i >= 5:  
+            break
+        print("résumé :", [dataset.index_to_word[i.item()] for i in indices])
+        print("sous categorie :", dataset.index_to_class[label.item()])
+        

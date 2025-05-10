@@ -42,7 +42,8 @@ logging.basicConfig(
 # -----------------------------
 # Constants and general parameters
 CSV_FILE = "data/articles.csv"
-CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
+CLASSIFICATION_LEVEL = "sub_category"  # "category" or "sub_category"
+SELECTED_CATEGORIES = ["math"]  # List of categories to include, or None for all
 USE_SUMMARY = True  # Use summary instead of title for classification
 MODEL = "mlp"
 MODELS = {
@@ -63,11 +64,11 @@ DROPOUT = 0.3
 # -----------------------------
 # Dataset initialization
 print("[INFO] Initializing dataset...")
-dataset = ArticleDataset(CSV_FILE, use_summary=USE_SUMMARY, classification_level=CLASSIFICATION_LEVEL)
+dataset = ArticleDataset(CSV_FILE, use_summary=USE_SUMMARY, classification_level=CLASSIFICATION_LEVEL, selected_categories=SELECTED_CATEGORIES)
 
 # Applying filters to the dataset
 filters = {
-    "min_freq": 10,       
+          
 }
 dataset.apply_filters(filters)
 print("[INFO] Dataset ready!")
