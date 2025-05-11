@@ -45,8 +45,8 @@ CSV_FILE = "data/articles.csv"
 CLASSIFICATION_LEVEL = "category"  # "category" or "sub_category"
 SELECTED_CATEGORIES = None  # List of categories to include, or None for all
 USE_SUMMARY = False  # Use summary instead of title for classification
-EPOCHS = 5  
-MODEL = "mlp"
+EPOCHS = 4  
+MODEL = "bilstm_attention"
 MODELS = {
     "bilstm": BiLSTMClassifier,
     "bilstm_attention": BiLSTMAttentionClassifier,
