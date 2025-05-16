@@ -27,7 +27,7 @@ from classifier.article_dataset import ArticleDataset
 from classifier.models.mlp_classifier import MLPClassifier
 
 # Chemins fixes pour le modèle et le dataset
-MODEL_PATH = "mlp_title_fulldb.pth"
+MODEL_PATH = str(Path(__file__).resolve().parent / "mlp_title_fulldb.pth")
 DATASET_REPO = "issaHF/arxiv-ml-dataset"  # Remplacez par votre nom d'utilisateur
 
 # --- Chargement du modèle pré-entraîné et de ses paramètres ---
@@ -73,7 +73,7 @@ def load_model_and_params(checkpoint_path: str, device: str):
 
 # --- Chargement des données et du dataset ---
 @st.cache_data
-def load_dataset(dataset_repo: str, dataset_filters: dict = None, use_summary: bool = False, classification_level: str = "category") -> ArticleDataset:
+def load_article_dataset(dataset_repo: str, dataset_filters: dict = None, use_summary: bool = False, classification_level: str = "category") -> ArticleDataset:
     try:
         # Chargement du dataset depuis Hugging Face Hub
         hf_dataset = load_dataset(dataset_repo, split="train")
@@ -232,7 +232,7 @@ def main():
     
     with st.spinner("Chargement du modèle et des données..."):
         model, hyperparams, dataset_filters = load_model_and_params(MODEL_PATH, device)
-        dataset = load_dataset(DATASET_REPO, dataset_filters)
+        dataset = load_article_dataset(DATASET_REPO, dataset_filters)
         
         if model is None or dataset is None:
             st.error("Erreur lors du chargement de l'application.")
