@@ -24,7 +24,6 @@ except RuntimeError:
 
 from classifier.article_dataset import ArticleDataset
 from classifier.models.mlp_classifier import MLPClassifier
-from classifier.utils import custom_collate
 
 # Chemins fixes pour le modèle et le dataset
 MODEL_PATH = "../classifier/experiments/mlp/mlp_title_fulldb/mlp_title_fulldb.pth"
