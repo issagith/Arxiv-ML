@@ -5,7 +5,6 @@ import pandas as pd
 import faiss
 import re
 import os
-import asyncio
 import sys
 from pathlib import Path
 from datasets import load_dataset
@@ -17,12 +16,6 @@ sys.path.append(parent_dir)
 
 # Configuration pour éviter le conflit OpenMP
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-
-# Assurer qu'un event loop est disponible
-try:
-    asyncio.get_event_loop()
-except RuntimeError:
-    asyncio.set_event_loop(asyncio.new_event_loop())
 
 from classifier.article_dataset import ArticleDataset
 from classifier.models.mlp_classifier import MLPClassifier
