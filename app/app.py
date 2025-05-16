@@ -9,6 +9,7 @@ import asyncio
 import sys
 from pathlib import Path
 from datasets import load_dataset
+from tqdm import tqdm
 
 # Ajout du répertoire parent au PYTHONPATH pour l'import des modules classifier
 parent_dir = str(Path(__file__).resolve().parent.parent)
@@ -28,10 +29,10 @@ from classifier.models.mlp_classifier import MLPClassifier
 
 # Chemins fixes pour le modèle et le dataset
 MODEL_PATH = str(Path(__file__).resolve().parent / "mlp_title_fulldb.pth")
-DATASET_REPO = "issaHF/arxiv-ml-dataset"  # Remplacez par votre nom d'utilisateur
+DATASET_PATH = str(Path(__file__).resolve().parent / "data" / "articles.csv")
 
 # --- Chargement du modèle pré-entraîné et de ses paramètres ---
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_model_and_params(checkpoint_path: str, device: str):
     try:
         # Conversion en Path pour une meilleure gestion des chemins
@@ -40,68 +41,56 @@ def load_model_and_params(checkpoint_path: str, device: str):
             st.error(f"Le fichier modèle {model_path} n'existe pas.")
             return None, None, None
         
-        # Chargement du checkpoint complet
-        checkpoint = torch.load(str(model_path), map_location=device)
-        
-        # Extraction des différentes parties du checkpoint
-        model_state = checkpoint.get('model_state_dict')
-        hyperparams = checkpoint.get('hyperparameters', {})
-        dataset_filters = checkpoint.get('dataset_filters', {"min_freq": 5})
-        
-        if not model_state:
-            st.error("Le fichier de checkpoint ne contient pas d'état du modèle.")
-            return None, None, None
-        
-        # Initialisation du modèle avec les hyperparamètres
-        model = MLPClassifier(
-            vocab_size=hyperparams.get('vocab_size', 0),
-            embedding_dim=hyperparams.get('embedding_dim', 128),
-            hidden_dim=hyperparams.get('hidden_dim', 128),
-            num_classes=hyperparams.get('num_classes', 0),
-            num_hidden_layers=hyperparams.get('num_hidden_layers', 1),
-            dropout=hyperparams.get('dropout', 0.3)
-        ).to(device)
-        
-        # Chargement des poids du modèle
-        model.load_state_dict(model_state)
-        model.eval()
-        
-        return model, hyperparams, dataset_filters
+        with st.spinner("Chargement du modèle..."):
+            # Chargement du checkpoint complet
+            checkpoint = torch.load(str(model_path), map_location=device)
+            
+            # Extraction des différentes parties du checkpoint
+            model_state = checkpoint.get('model_state_dict')
+            hyperparams = checkpoint.get('hyperparameters', {})
+            dataset_filters = checkpoint.get('dataset_filters', {"min_freq": 5})
+            
+            if not model_state:
+                st.error("Le fichier de checkpoint ne contient pas d'état du modèle.")
+                return None, None, None
+            
+            # Initialisation du modèle avec les hyperparamètres
+            model = MLPClassifier(
+                vocab_size=hyperparams.get('vocab_size', 0),
+                embedding_dim=hyperparams.get('embedding_dim', 128),
+                hidden_dim=hyperparams.get('hidden_dim', 128),
+                num_classes=hyperparams.get('num_classes', 0),
+                num_hidden_layers=hyperparams.get('num_hidden_layers', 1),
+                dropout=hyperparams.get('dropout', 0.3)
+            ).to(device)
+            
+            # Chargement des poids du modèle
+            model.load_state_dict(model_state)
+            model.eval()
+            
+            return model, hyperparams, dataset_filters
     except Exception as e:
         st.error(f"Erreur lors du chargement du modèle: {str(e)}")
         return None, None, None
 
 # --- Chargement des données et du dataset ---
-@st.cache_data
-def load_article_dataset(dataset_repo: str, dataset_filters: dict = None, use_summary: bool = False, classification_level: str = "category") -> ArticleDataset:
+@st.cache_data(show_spinner=False)
+def load_article_dataset(csv_path: str, dataset_filters: dict = None, use_summary: bool = False, classification_level: str = "category") -> ArticleDataset:
     try:
-        # Chargement du dataset depuis Hugging Face Hub
-        hf_dataset = load_dataset(dataset_repo, split="train")
-        
-        # Conversion en DataFrame pandas
-        df = pd.DataFrame(hf_dataset)
-        
-        # Sauvegarde temporaire en CSV pour compatibilité avec ArticleDataset
-        temp_csv = "temp_articles.csv"
-        df.to_csv(temp_csv, index=False)
-        
-        # Si pas de filtres spécifiés, utiliser un filtre par défaut
-        if dataset_filters is None:
-            dataset_filters = {"min_freq": 5}
-        
-        # Charge les articles et initialise le dataset
-        dataset = ArticleDataset(
-            csv_file=temp_csv,
-            use_summary=use_summary,
-            classification_level=classification_level,
-            selected_categories=None
-        )
-        dataset.apply_filters(dataset_filters)
-        
-        # Suppression du fichier temporaire
-        os.remove(temp_csv)
-        
-        return dataset
+        with st.spinner("Chargement du dataset..."):
+            # Si pas de filtres spécifiés, utiliser un filtre par défaut
+            if dataset_filters is None:
+                dataset_filters = {"min_freq": 5}
+            
+            # Charge les articles et initialise le dataset
+            dataset = ArticleDataset(
+                csv_file=csv_path,
+                use_summary=use_summary,
+                classification_level=classification_level,
+                selected_categories=None
+            )
+            dataset.apply_filters(dataset_filters)
+            return dataset
     except Exception as e:
         st.error(f"Erreur lors du chargement du dataset: {str(e)}")
         return None
@@ -232,7 +221,7 @@ def main():
     
     with st.spinner("Chargement du modèle et des données..."):
         model, hyperparams, dataset_filters = load_model_and_params(MODEL_PATH, device)
-        dataset = load_article_dataset(DATASET_REPO, dataset_filters)
+        dataset = load_article_dataset(DATASET_PATH, dataset_filters)
         
         if model is None or dataset is None:
             st.error("Erreur lors du chargement de l'application.")
