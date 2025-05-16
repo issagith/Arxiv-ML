@@ -8,6 +8,7 @@ import os
 import asyncio
 import sys
 from pathlib import Path
+from datasets import load_dataset
 
 # Ajout du répertoire parent au PYTHONPATH pour l'import des modules classifier
 parent_dir = str(Path(__file__).resolve().parent.parent)
@@ -26,8 +27,8 @@ from classifier.article_dataset import ArticleDataset
 from classifier.models.mlp_classifier import MLPClassifier
 
 # Chemins fixes pour le modèle et le dataset
-MODEL_PATH = "../classifier/experiments/mlp/mlp_title_fulldb/mlp_title_fulldb.pth"
-DATASET_PATH = "../classifier/data/articles.csv"
+MODEL_PATH = "mlp_title_fulldb.pth"
+DATASET_REPO = "issaHF/arxiv-ml-dataset"  # Remplacez par votre nom d'utilisateur
 
 # --- Chargement du modèle pré-entraîné et de ses paramètres ---
 @st.cache_resource
@@ -72,13 +73,17 @@ def load_model_and_params(checkpoint_path: str, device: str):
 
 # --- Chargement des données et du dataset ---
 @st.cache_data
-def load_dataset(csv_path: str, dataset_filters: dict = None, use_summary: bool = False, classification_level: str = "category") -> ArticleDataset:
+def load_dataset(dataset_repo: str, dataset_filters: dict = None, use_summary: bool = False, classification_level: str = "category") -> ArticleDataset:
     try:
-        # Conversion en Path pour une meilleure gestion des chemins
-        data_path = Path(csv_path)
-        if not data_path.exists():
-            st.error(f"Le fichier {data_path} n'existe pas.")
-            return None
+        # Chargement du dataset depuis Hugging Face Hub
+        hf_dataset = load_dataset(dataset_repo, split="train")
+        
+        # Conversion en DataFrame pandas
+        df = pd.DataFrame(hf_dataset)
+        
+        # Sauvegarde temporaire en CSV pour compatibilité avec ArticleDataset
+        temp_csv = "temp_articles.csv"
+        df.to_csv(temp_csv, index=False)
         
         # Si pas de filtres spécifiés, utiliser un filtre par défaut
         if dataset_filters is None:
@@ -86,12 +91,16 @@ def load_dataset(csv_path: str, dataset_filters: dict = None, use_summary: bool 
         
         # Charge les articles et initialise le dataset
         dataset = ArticleDataset(
-            csv_file=str(data_path),
+            csv_file=temp_csv,
             use_summary=use_summary,
             classification_level=classification_level,
             selected_categories=None
         )
         dataset.apply_filters(dataset_filters)
+        
+        # Suppression du fichier temporaire
+        os.remove(temp_csv)
+        
         return dataset
     except Exception as e:
         st.error(f"Erreur lors du chargement du dataset: {str(e)}")
@@ -223,7 +232,7 @@ def main():
     
     with st.spinner("Chargement du modèle et des données..."):
         model, hyperparams, dataset_filters = load_model_and_params(MODEL_PATH, device)
-        dataset = load_dataset(DATASET_PATH, dataset_filters)
+        dataset = load_dataset(DATASET_REPO, dataset_filters)
         
         if model is None or dataset is None:
             st.error("Erreur lors du chargement de l'application.")
